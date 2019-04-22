@@ -49,6 +49,7 @@
 #ifdef CONFIG_MACH_ASUS_SDM660
 #include <linux/wakelock.h>
 #endif
+#include <linux/cpu_input_boost.h>
 #include <linux/devfreq_boost.h>
 #include <sync.h>
 #include <sw_sync.h>
