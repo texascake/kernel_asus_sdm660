@@ -29,16 +29,13 @@ tg_post_build()
 	fi
 }
 
+## Cloning toolchain
 if ! [ -d "$KERNELDIR/ew" ]; then
-mkdir -p ew && cd ew
-bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=09092023
+mkdir -p $KERNELDIR/ew && cd $KERNELDIR/ew
+wget -q https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz -O "ElectroWizard-Clang-18.1.8.tar.gz"
+tar -xf ElectroWizard-Clang-18.1.8.tar.gz
+rm -rf ElectroWizard-Clang-18.1.8.tar.gz
 cd ..
-fi
-
-if ! [ -d "$KERNELDIR/AnyKernel3" ]; then
-if ! git clone --depth=1 https://github.com/Tiktodz/AnyKernel3 -b hmp-old AnyKernel3; then
-exit 1
-fi
 fi
 
 ## Copy this script inside the kernel directory
@@ -55,8 +52,11 @@ export PATH="$KERNELDIR/ew/bin:$PATH"
 export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_USER="queen"
+export LLVM=1
+export LLVM_IAS=1
 export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}")
 export KBUILD_COMPILER_STRING="$($KERNELDIR/ew/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
+ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$KERNELDIR/ew/lib LD=ld.lld HOSTLD=ld.lld"
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -70,30 +70,27 @@ make O=out clean
 
 # Starting compilation
 make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
-make -j$(nproc --all) O=out LLVM=1 \
-		ARCH=arm64 \
-		AS="$KERNELDIR/ew/bin/llvm-as" \
+make -j$(nproc --all) O=out \
+		ARCH=$ARCH \
+		SUBARCH=$ARCH \
 		CC="$KERNELDIR/ew/bin/clang" \
-		LD="$KERNELDIR/ew/bin/ld.lld" \
-		AR="$KERNELDIR/ew/bin/llvm-ar" \
-		NM="$KERNELDIR/ew/bin/llvm-nm" \
-		STRIP="$KERNELDIR/ew/bin/llvm-strip" \
-		OBJCOPY="$KERNELDIR/ew/bin/llvm-objcopy" \
-		OBJDUMP="$KERNELDIR/ew/bin/llvm-objdump" \
-		CLANG_TRIPLE=aarch64-linux-gnu- \
-		CROSS_COMPILE="$KERNELDIR/ew/bin/clang" \
-		CROSS_COMPILE_COMPAT="$KERNELDIR/ew/bin/clang" \
-		CROSS_COMPILE_ARM32="$KERNELDIR/ew/bin/clang" 2>&1 | tee -a error.log
+		CROSS_COMPILE=aarch64-linux-gnu- \
+		HOSTCC="$KERNELDIR/ew/bin/clang" \
+		HOSTCXX="$KERNELDIR/ew/bin/clang++" ${ClangMoreStrings} 2>&1 | tee -a error.log
 
 if ! [ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ];then
     tg_post_build "error.log" "Build Error!"
     exit 1
 fi
 
-# Anykernel 3 time!!
+# Anykernel3 time!!
+if ! [ -d "$KERNELDIR/AnyKernel3" ]; then
+git clone --depth=1 https://github.com/Tiktodz/AnyKernel3 -b hmp-new AnyKernel3
 ls $ANYKERNEL3_DIR
-cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $ANYKERNEL3_DIR/
+cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $ANYKERNEL3_DIR
+fi
 
+# Zipping time!!
 cd $ANYKERNEL3_DIR/
 cp -af $KERNELDIR/init.$CODENAME.Spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel TheOneMemory/g" spectrum/init.spectrum.rc
 cp -af $KERNELDIR/changelog META-INF/com/google/android/aroma/changelog.txt
@@ -123,7 +120,7 @@ sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 cd ../../../..
 
-zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh placeholder .gitignore zipsigner* "*.zip"
+zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh ./*placeholder .gitignore zipsigner* "*.zip"
 
 ZIP_FINAL="$FINAL_KERNEL_ZIP"
 
