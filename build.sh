@@ -4,9 +4,28 @@ KERNELDIR=$(pwd)
 
 # Identity
 CODENAME=Hayzel
-KERNELNAME=TheOneMemory
+KERNELNAME=TOM
 VARIANT=HMP
 VERSION=CLO
+
+# The name of the device for which the kernel is built
+MODEL="Asus Max Pro M1"
+
+# The codename of the device
+DEVICE="X00TD"
+
+# shellcheck source=/etc/os-release
+DISTRO=$(source /etc/os-release && echo "${NAME}")
+KBUILD_BUILD_HOST=$(uname -a | awk '{print $2}')
+CI_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+TERM=xterm
+export KBUILD_BUILD_HOST CI_BRANCH TERM
+
+# Specify linker.
+# 'ld.lld'(default)
+LINKER=ld.lld
+
+CHANGELOGS=https://github.com/Tiktodz/android_kernel_asus_sdm636/commits/tom/hmp/
 
 TG_TOPIC=0
 BOT_BUILD_URL="https://api.telegram.org/bot$TG_TOKEN/sendDocument"
@@ -29,6 +48,24 @@ tg_post_build()
 	fi
 }
 
+tg_post_msg(){
+        if [ $TG_SUPER = 1 ]
+        then
+            curl -s -X POST "$BOT_MSG_URL" \
+            -d chat_id="$TG_CHAT_ID" \
+            -d message_thread_id="$TG_TOPIC_ID" \
+            -d "disable_web_page_preview=true" \
+            -d "parse_mode=html" \
+            -d text="$1"
+        else
+            curl -s -X POST "$BOT_MSG_URL" \
+            -d chat_id="$TG_CHAT_ID" \
+            -d "disable_web_page_preview=true" \
+            -d "parse_mode=html" \
+            -d text="$1"
+        fi
+}
+
 ## Cloning toolchain
 if ! [ -d "$KERNELDIR/ew" ]; then
 mkdir -p $KERNELDIR/ew && cd $KERNELDIR/ew
@@ -46,6 +83,8 @@ DATE=$(date '+%Y%m%d')
 BUILD_START=$(date +"%s")
 FINAL_KERNEL_ZIP="$KERNELNAME-$VERSION-$VARIANT-$(date '+%Y%m%d-%H%M')"
 KERVER=$(make kernelversion)
+# Set a commit head
+COMMIT_HEAD=$(git log --oneline -1)
 
 # Exporting
 export PATH="$KERNELDIR/ew/bin:$PATH"
@@ -54,7 +93,6 @@ export SUBARCH=arm64
 export KBUILD_BUILD_USER="queen"
 export LLVM=1
 export LLVM_IAS=1
-export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}")
 export KBUILD_COMPILER_STRING="$($KERNELDIR/ew/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
 ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$KERNELDIR/ew/lib LD=ld.lld HOSTLD=ld.lld"
 
@@ -82,6 +120,8 @@ if ! [ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ];then
     tg_post_build "error.log" "Build Error!"
     exit 1
 fi
+
+    tg_post_msg "<b>$KBUILD_BUILD_VERSION Build Triggered</b>%0A<b>Docker OS: </b><code>$DISTRO</code>%0A<b>Kernel Version : </b><code>$KERVER</code>%0A<b>Date : </b><code>$(TZ=Asia/Jakarta date)</code>%0A<b>Device : </b><code>$MODEL [$DEVICE]</code>%0A<b>Pipeline Host : </b><code>$HOST</code>%0A<b>Host Core Count : </b><code>$PROCS</code>%0A<b>Compiler Used : </b><code>$KBUILD_COMPILER_STRING</code>%0A<b>Linker : </b><code>$LINKER</code>%0a<b>Branch : </b><code>$CI_BRANCH</code>%0A<b>Top Commit : </b><code>$COMMIT_HEAD</code>%0A<a href='$CHANGELOGS'>Changelogs</a>"
 
 # Anykernel3 time!!
 if ! [ -d "$KERNELDIR/AnyKernel3" ]; then
