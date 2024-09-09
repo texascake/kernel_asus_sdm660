@@ -48,7 +48,7 @@
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 #include <linux/fastchg.h>
-#define USB_FASTCHG_LOAD 3000 /* uA */
+#define USB_FASTCHG_LOAD 2000 /* uA */
 #endif
 
 #define MSM_USB_BASE	(motg->regs)
@@ -668,11 +668,10 @@ static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 	if (force_fast_charge == 1) {
-		mA = mA;
 		pr_info("USB fast charging is OFF.\n");
 	} else if (force_fast_charge == 2) {
 		mA = USB_FASTCHG_LOAD;
-		pr_info("USB fast charging is ON - 3000mA.\n");
+		pr_info("USB fast charging is ON - 2000mA.\n");
 	}
 #endif
 

@@ -43,7 +43,7 @@
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 #include <linux/fastchg.h>
-#define USB_FASTCHG_LOAD 3000 /* uA */
+#define USB_FASTCHG_LOAD 2000 /* uA */
 #endif
 
 #define smblib_err(chg, fmt, ...)		\
@@ -951,11 +951,11 @@ static int set_sdp_current(struct smb_charger *chg, int icl_ua)
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 	if (force_fast_charge == 1) {
-		icl_ua = USBIN_900MA;
-		pr_info("USB fast charging is OFF.\n");
+			icl_ua = USBIN_900MA;
+			pr_info("USB fast charging is OFF.\n");
 	} else if (force_fast_charge == 2) {
 		icl_ua = USB_FASTCHG_LOAD;
-		pr_info("USB fast charging is ON - 3000mA.\n");
+		pr_info("USB fast charging is ON - 2000mA.\n");
 	}
 #endif
 
