@@ -178,10 +178,17 @@ cd ../../../..
 
 zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh ./*placeholder .gitignore zipsigner* "*.zip"
 
+ZIP_FINAL="$FINAL_KERNEL_ZIP"
+
 cd ..
 
+echo "**** Sign zip with AOSP key ****"
+curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
+java -jar zipsigner-3.0.jar "$ZIP_FINAL".zip "$ZIP_FINAL"-signed.zip
+ZIP_FINAL="$ZIP_FINAL-signed"
+
 echo "**** Uploading your zip now ****"
-tg_post_build "$FINAL_KERNEL_ZIP" "⏳ *Compile Time*
+tg_post_build "$ZIP_FINAL.zip" "⏳ *Compile Time*
 • $(($DIFF / 60)) minutes and $(($DIFF % 60)) seconds
 🐧 *Linux Version*
 • ${KERVER}
