@@ -378,12 +378,12 @@
 #define USB3_MAX_CURRENT_MA			900
 #define SMB1351_IRQ_REG_COUNT			8
 #define SMB1351_CHG_PRE_MIN_MA			100
-#define SMB1351_CHG_FAST_MIN_MA			3000
+#define SMB1351_CHG_FAST_MIN_MA			2000
 #define SMB1351_CHG_FAST_MAX_MA			4500
 #define SMB1351_CHG_PRE_SHIFT			5
 #define SMB1351_CHG_FAST_SHIFT			4
 #define DEFAULT_BATT_CAPACITY			50
-#define DEFAULT_BATT_TEMP			450
+#define DEFAULT_BATT_TEMP			250
 #define SUSPEND_CURRENT_MA			2
 
 #define CHG_ITERM_200MA				0x0
@@ -708,7 +708,7 @@ static int smb1351_fastchg_current_set(struct smb1351_charger *chip,
 	}
 
 	/*
-	 * fast chg current could not support less than 3000mA
+	 * fast chg current could not support less than 2000mA
 	 * use pre chg to instead for the parallel charging
 	 */
 	if (fastchg_current < SMB1351_CHG_FAST_MIN_MA) {
@@ -741,9 +741,9 @@ static int smb1351_fastchg_current_set(struct smb1351_charger *chip,
 		if (chip->version == SMB_UNKNOWN)
 			return -EINVAL;
 
-		/* SMB1351 supports FCC upto 3000 mA */
-		if (chip->version == SMB1351 && fastchg_current > 3000)
-			fastchg_current = 3000;
+		/* SMB1351 supports FCC upto 2600 mA */
+		if (chip->version == SMB1351 && fastchg_current > 2600)
+			fastchg_current = 2600;
 
 		/* set fastchg current */
 		for (i = ARRAY_SIZE(fast_chg_current) - 1; i >= 0; i--) {
@@ -1396,7 +1396,7 @@ static int smb1351_battery_get_property(struct power_supply *psy,
 		val->intval = smb1351_get_prop_batt_temp(chip);
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
-		val->intval = POWER_SUPPLY_TECHNOLOGY_LIPO;
+		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
 		break;
 	case POWER_SUPPLY_PROP_MODEL_NAME:
 		val->strval = "smb1351";
@@ -2547,7 +2547,7 @@ static void smb1351_external_power_changed(struct power_supply *psy)
 	if (rc)
 		pr_err("Couldn't read USB current_max property, rc=%d\n", rc);
 	else
-		current_limit = prop.intval / 3000;
+		current_limit = prop.intval / 2000;
 
 	pr_debug("online = %d, current_limit = %d\n", online, current_limit);
 
