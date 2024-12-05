@@ -1686,6 +1686,7 @@ static inline bool may_mount(void)
  *
  * Return: true if @path is the root of a mount, false if not.
  */
+#ifdef CONFIG_KSU
 static inline bool path_mounted(const struct path *path)
 {
 	return path->mnt->mnt_root == path->dentry;
@@ -1723,6 +1724,7 @@ int path_umount(struct path *path, int flags)
 	mntput_no_expire(mnt);
 	return ret;
 }
+#endif
 
 /*
  * Now umount can handle mount points as well as block devices.
